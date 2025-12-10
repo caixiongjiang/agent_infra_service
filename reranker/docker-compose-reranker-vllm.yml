@@ -1,0 +1,42 @@
+services:
+  qwen3-reranker:
+    container_name: vllm-qwen3-reranker
+    image: vllm/vllm-openai:v0.10.2
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              capabilities: [gpu]
+              count: all
+    environment:
+      - TZ=Asia/Shanghai
+      - CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0}
+    volumes:
+      - ${MODEL_HOST_PATH:-./models/Qwen/Qwen3-Reranker-4B}:${MODEL_INTERNAL_PATH:-/Qwen3-Reranker-4B}
+    command: >
+      --model ${MODEL_INTERNAL_PATH:-/Qwen3-Reranker-4B}
+      --host 0.0.0.0
+      --port 18083
+      --served-model-name ${MODEL_NAME:-qwen3-reranker}
+      --trust-remote-code
+      --max-model-len ${MAX_MODEL_LEN:-8192}
+      --gpu-memory-utilization ${GPU_MEMORY_UTIL:-0.85}
+      --dtype bfloat16
+      --hf-overrides '{"architectures": ["Qwen3ForSequenceClassification"], "classifier_from_token": ["no", "yes"], "is_original_qwen3_reranker": true}'
+    ports:
+      - "18083:18083"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:18083/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - vllm-reranker-network
+
+networks:
+  vllm-reranker-network:
+    driver: bridge
+    name: vllm-reranker-network

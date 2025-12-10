@@ -1,0 +1,78 @@
+services:
+  kafka:
+    container_name: kafka
+    image: apache/kafka-native:4.0.0 # 建议使用官方 apache/kafka 镜像，生产环境建议固定具体版本号
+    user: "root:root"
+    restart: unless-stopped
+    ports:
+      # 将宿主机的 9092 端口映射到容器的 9092 端口，用于外部访问
+      - "9092:9092"
+      # 注意：29092 端口是容器间通信用的，不需要映射到宿主机
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      # 定义三个监听器：INTERNAL给容器间通信，EXTERNAL给宿主机，CONTROLLER给KRaft内部通信
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:29092,EXTERNAL://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      # 告诉客户端如何访问这些监听器
+      # 内部容器使用服务名'kafka'和内部端口'29092'
+      # 外部客户端使用'localhost'和外部端口'9092'
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:29092,EXTERNAL://${KAFKA_EXTERNAL_HOST:-localhost}:9092
+      # 声明所有监听器使用的安全协议
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      # 【修正】使用服务名 'kafka' 作为 Controller 的地址
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      # 单节点集群的必要配置
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_NUM_PARTITIONS: 3
+      # 消息大小限制配置 - 设置为5MB以支持大消息
+      KAFKA_MESSAGE_MAX_BYTES: 5242880                    # 5MB - broker接受的最大消息大小
+      KAFKA_REPLICA_FETCH_MAX_BYTES: 5242880              # 5MB - 副本同步时的最大消息大小
+      KAFKA_SOCKET_REQUEST_MAX_BYTES: 104857600           # 100MB - socket请求的最大大小
+      KAFKA_LOG_SEGMENT_BYTES: 1073741824                 # 1GB - 日志段大小
+      KAFKA_LOG_CLEANUP_POLICY: delete
+      KAFKA_LOG_RETENTION_HOURS: 72                       # 3天
+      KAFKA_LOG_RETENTION_BYTES: 1073741824               # 1GB
+    volumes:
+      # 持久化 Kafka 数据，注意官方镜像的数据路径可能不同，需要查阅文档
+      # 且需要注意的是目录的权限必须和容器内的权限一致
+      - ${KAFKA_DATA_PATH:-.}/data:/tmp/kafka-logs
+    networks:
+      - kafka-network
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z localhost 9092 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  kafka-ui:
+    container_name: kafka-ui
+    image: provectuslabs/kafka-ui:latest
+    restart: unless-stopped
+    ports:
+      - "9080:8080"
+    environment:
+      # 【修正】只使用环境变量进行配置，更清晰
+      KAFKA_CLUSTERS_0_NAME: local-kraft-cluster
+      # 【修正】连接到 Kafka 的内部监听器地址
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - kafka-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+networks:
+  kafka-network:
+    driver: bridge

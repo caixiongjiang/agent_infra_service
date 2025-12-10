@@ -1,0 +1,18 @@
+services:
+  neo4j:
+    image: neo4j:5.26.10
+    container_name: neo4j
+    ports:
+      - "7474:7474" # HTTP 端口
+      - "7687:7687" # Bolt 协议端口
+    # 挂载目录
+    volumes:
+      - ${NEO4J_DATA_PATH:-.}/neo4j/data:/data # Neo4j 5.x 推荐数据目录
+      - ${NEO4J_DATA_PATH:-.}/data/neo4j_plugins:/plugins # Neo4j 5.x 推荐插件目录
+      - ${NEO4J_DATA_PATH:-.}/data/neo4j/conf:/conf" # Neo4j 5.x 推荐配置目录
+    # 对应脚本中的 -e 环境变量
+    environment:
+      - NEO4J_AUTH=neo4j/${NEO4J_PASSWORD:-password}
+    # 推荐添加：确保在停止时容器能优雅退出
+    stop_grace_period: 1m
+    restart: unless-stopped

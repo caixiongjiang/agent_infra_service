@@ -1,0 +1,14 @@
+services:
+  redis:
+    container_name: services_redis
+    image: redis:7.4.2
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+    command: redis-server --requirepass ${REDIS_PASSWORD} # 这里正确设置密码
+    volumes:
+      - ${REDIS_DATA_PATH:-.}/data:/data
+    mem_limit: "512m"
+    mem_reservation: "256m"

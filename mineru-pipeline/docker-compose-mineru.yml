@@ -1,0 +1,20 @@
+services:
+  mineru:
+      container_name: mineru
+      image: g-trbc3470-docker.pkg.coding.net/agentboosty/ab/mineru:cf16f584ffd8c37655f4fbec2618c87d4f01f6e6
+      restart: unless-stopped
+      ports:
+        - "6999:8000"
+      environment:
+        - NVIDIA_DRIVER_CAPABILITIES=all
+        - WORKERS_PER_DEVICE=5
+        - MINERU_TOOLS_CONFIG_JSON=/root/magic-pdf.json
+      volumes:
+        - .paddleocr:/root/.paddleocr
+        - ./models/mineru:/root/models
+      deploy:
+        resources:
+          reservations:
+            devices:
+              - driver: nvidia
+                capabilities: [gpu]

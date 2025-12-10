@@ -1,0 +1,17 @@
+services:
+  mysql:
+    container_name: services_mysql
+    image: mysql:8
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}  # 配置 root 用户密码
+      MYSQL_USER: ${MYSQL_USER}  # 配置新用户
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}  # 配置新用户的密码
+    volumes:
+      - ${MYSQL_DATA_PATH:-.}/data:/var/lib/mysql
+    mem_limit: "1536m"   # 限制最大 1.5GB 内存
+    mem_reservation: "1024m"  # 预留 1GB 内存
+

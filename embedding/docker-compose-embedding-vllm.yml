@@ -1,0 +1,41 @@
+services:
+  qwen3-embedding:
+    container_name: vllm-qwen3-embedding
+    image: vllm/vllm-openai:v0.10.2
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              capabilities: [gpu]
+              count: all
+    environment:
+      - TZ=Asia/Shanghai
+      - CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0}
+    volumes:
+      - ${MODEL_HOST_PATH:-./models/Qwen/Qwen3-Embedding-0.6B}:${MODEL_INTERNAL_PATH:-/Qwen3-Embedding-0.6B}
+    command: >
+      --model ${MODEL_INTERNAL_PATH:-/Qwen3-Embedding-0.6B}
+      --host 0.0.0.0
+      --port 18084
+      --served-model-name ${MODEL_NAME:-qwen3-embedding}
+      --trust-remote-code
+      --max-model-len ${MAX_MODEL_LEN:-8192}
+      --gpu-memory-utilization ${GPU_MEMORY_UTIL:-0.4}
+      --dtype bfloat16
+    ports:
+      - "18084:18084"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:18084/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - vllm-embedding-network
+
+networks:
+  vllm-embedding-network:
+    driver: bridge
+    name: vllm-embedding-network
