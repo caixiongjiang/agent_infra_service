@@ -15,7 +15,7 @@ from typing import Dict
 class TianshuClient:
     """天枢客户端"""
     
-    def __init__(self, api_url='http://localhost:8000'):
+    def __init__(self, api_url='http://localhost:18000'):
         self.api_url = api_url
         self.base_url = f"{api_url}/api/v1"
     
@@ -158,7 +158,7 @@ async def example_single_task():
         # 提交任务
         result = await client.submit_task(
             session,
-            file_path='../../demo/pdfs/demo1.pdf',
+            file_path='./demo/pdfs/demo1.pdf',
             backend='pipeline',
             lang='ch',
             formula_enable=True,
@@ -185,9 +185,9 @@ async def example_batch_tasks():
     
     # 准备任务列表
     files = [
-        '../../demo/pdfs/demo1.pdf',
-        '../../demo/pdfs/demo2.pdf',
-        '../../demo/pdfs/demo3.pdf',
+        './demo/pdfs/demo1.pdf',
+        './demo/pdfs/demo2.pdf',
+        './demo/pdfs/demo3.pdf',
     ]
     
     async with aiohttp.ClientSession() as session:
@@ -234,7 +234,7 @@ async def example_priority_tasks():
         # 提交低优先级任务
         low_priority = await client.submit_task(
             session,
-            file_path='../../demo/pdfs/demo1.pdf',
+            file_path='./demo/pdfs/demo1.pdf',
             priority=0
         )
         logger.info(f"📝 Low priority task: {low_priority['task_id']}")
@@ -242,7 +242,7 @@ async def example_priority_tasks():
         # 提交高优先级任务
         high_priority = await client.submit_task(
             session,
-            file_path='../../demo/pdfs/demo2.pdf',
+            file_path='./demo/pdfs/demo2.pdf',
             priority=10
         )
         logger.info(f"🔥 High priority task: {high_priority['task_id']}")
@@ -315,4 +315,3 @@ if __name__ == '__main__':
     python client_example.py monitor
     """
     asyncio.run(main())
-

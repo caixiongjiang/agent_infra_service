@@ -1,0 +1,75 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Git
+.git/
+.gitignore
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# 输出和数据目录
+output/
+data/
+*.db
+*.db-journal
+
+# 模型文件（由 volume 挂载）
+PDF-Extract-Kit-1.0/
+models/
+*.pth
+*.pt
+*.onnx
+
+# 临时文件
+tmp/
+temp/
+*.tmp
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Documentation
+README.md
+DOCKER_DEPLOYMENT.md
+docs/
+
+# 测试文件
+tests/
+test_*.py
+*_test.py

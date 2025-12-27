@@ -1,0 +1,78 @@
+services:
+  mineru-tianshu:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    
+    container_name: mineru-tianshu
+    
+    # GPU 支持配置 (需要 docker 安装 nvidia-container-toolkit)
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all  # 使用所有 GPU，也可以指定数量如 count: 1
+              capabilities: [gpu]
+    
+    # 环境变量文件
+    env_file:
+      - mineru.env
+    
+    # 额外的环境变量（可选）
+    environment:
+      - API_PORT=8000
+      - OUTPUT_DIR=/app/output
+      - TZ=Asia/Shanghai
+      # MinIO 配置（如果使用）
+      # - MINIO_ENDPOINT=your-endpoint.com
+      # - MINIO_ACCESS_KEY=your-access-key
+      # - MINIO_SECRET_KEY=your-secret-key
+      # - MINIO_BUCKET=your-bucket
+    
+    # 端口映射
+    ports:
+      - "18000:8000"  # API Server
+      - "19000:9000"  # LitServe Worker
+    
+    # 数据卷挂载
+    volumes:
+      # 配置文件挂载
+      - ./mineru.json:/app/mineru.json:ro
+      
+      # 模型文件夹挂载（重要：需要提前下载模型）
+      # 请根据实际路径修改，这里假设模型在当前目录的 PDF-Extract-Kit-1.0 文件夹
+      - /home/caixj/projects-code/mineru2_5-pipeline/PDF-Extract-Kit-1.0:/app/models/PDF-Extract-Kit-1.0:ro
+      
+      # 输出目录持久化（对应代码中的 /tmp/mineru_tianshu_output）
+      - ./output:/tmp/mineru_tianshu_output
+      
+      # SQLite 数据库持久化（数据库保存在 /app/data/ 目录）
+      - ./data:/app/data
+    
+    # 工作目录
+    working_dir: /app
+    
+    # 重启策略
+    restart: unless-stopped
+    
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    # 日志配置
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "3"
+
+# 网络配置（可选）
+networks:
+  default:
+    name: mineru-network
+    driver: bridge

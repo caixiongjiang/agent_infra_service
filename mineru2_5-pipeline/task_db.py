@@ -15,8 +15,10 @@ from pathlib import Path
 class TaskDB:
     """任务数据库管理类"""
     
-    def __init__(self, db_path='mineru_tianshu.db'):
+    def __init__(self, db_path='data/mineru_tianshu.db'):
         self.db_path = db_path
+        # 确保数据目录存在
+        Path(db_path).parent.mkdir(parents=True, exist_ok=True)
         self._init_db()
     
     def _get_conn(self):
@@ -433,4 +435,3 @@ if __name__ == '__main__':
     # 清理测试数据库
     Path('test_tianshu.db').unlink(missing_ok=True)
     print("Test completed!")
-

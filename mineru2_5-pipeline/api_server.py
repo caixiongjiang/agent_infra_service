@@ -536,6 +536,7 @@ async def get_task_status(
         'backend': task['backend'],
         'priority': task['priority'],
         'error_message': task['error_message'],
+        'result_path': task['result_path'],
         'created_at': task['created_at'],
         'started_at': task['started_at'],
         'completed_at': task['completed_at'],
@@ -748,4 +749,3 @@ if __name__ == '__main__':
         port=api_port,
         log_level='info'
     )
-
