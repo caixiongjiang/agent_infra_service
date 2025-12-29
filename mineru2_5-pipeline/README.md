@@ -19,9 +19,11 @@
 
 ### 智能解析
 - ✅ **双解析器** - PDF/图片用 MinerU(GPU加速), Office/HTML等用 MarkItDown(快速)
+- ✅ **丰富输出** - 支持 Markdown、结构化 JSON (content_list, middle_json, model_output)、图片等
 - ✅ **内容获取** - API自动返回 Markdown 内容,支持图片上传到 MinIO
 - ✅ **RESTful API** - 支持任何编程语言接入
 - ✅ **实时查询** - 随时查看任务进度和状态
+- ✅ **Docker 部署** - 开箱即用的容器化部署方案
 
 ## 🏗️ 系统架构
 
@@ -45,7 +47,31 @@
 
 ## 🚀 快速开始
 
-### 1. 安装依赖
+### 方式 A: Docker 部署（推荐）
+
+```bash
+# 1. 确保已安装 Docker 和 nvidia-container-toolkit
+
+# 2. 下载模型文件（如果还没下载）
+python3 download_models.py
+
+# 3. 修改 docker-compose.yml 中的模型路径
+# 将 /home/caixj/projects-code/mineru2_5-pipeline/PDF-Extract-Kit-1.0 
+# 改为你实际的模型路径
+
+# 4. 启动服务
+docker-compose up -d
+
+# 5. 查看日志
+docker-compose logs -f
+
+# 6. 访问 API 文档
+# 浏览器打开: http://localhost:18000/docs
+```
+
+### 方式 B: 本地部署
+
+#### 1. 安装依赖
 
 ```bash
 cd projects/mineru_tianshu
@@ -59,7 +85,7 @@ pip install -r requirements.txt
 >   - 网页: .html, .htm
 >   - 文本: .txt, .md, .csv, .json, .xml 等
 
-### 2. 启动服务
+#### 2. 启动服务
 
 ```bash
 # 一键启动所有服务（推荐）
@@ -71,7 +97,7 @@ python start_all.py --workers-per-device 2 --devices 0,1
 
 > **Windows 用户注意**: 项目已针对 Windows 的 multiprocessing 进行优化，可直接运行。
 
-### 3. 使用 API
+#### 3. 使用 API
 
 **方式A: 浏览器访问 API 文档**
 ```
@@ -161,7 +187,52 @@ while True:
     time.sleep(2)
 ```
 
-### 示例 2: 图片上传到 MinIO (可选功能)
+### 示例 2: 获取结构化数据（content_list, middle_json 等）
+
+```python
+import requests
+
+task_id = "your-task-id"
+
+# 获取完整的结构化数据
+response = requests.get(
+    f'http://localhost:8000/api/v1/tasks/{task_id}/data',
+    params={
+        'include_fields': 'md,content_list,middle_json,model_output,images'
+    }
+)
+
+result = response.json()
+if result['success'] and result.get('data'):
+    # Markdown 内容
+    if 'markdown' in result['data']:
+        md_content = result['data']['markdown']['content']
+        print(f"✅ Markdown 内容长度: {len(md_content)} 字符")
+    
+    # Content List (结构化内容列表，包含 layout 信息)
+    if 'content_list' in result['data']:
+        content_list = result['data']['content_list']['content']
+        print(f"✅ Content List: {len(content_list)} 个元素")
+        # content_list 包含每个页面的布局信息、文本位置等
+    
+    # Middle JSON (中间结果，包含坐标等详细信息)
+    if 'middle_json' in result['data']:
+        middle_json = result['data']['middle_json']['content']
+        print(f"✅ Middle JSON: {len(middle_json)} 页")
+        # middle_json 包含每个元素的详细坐标、类型等信息
+    
+    # Model Output (模型原始输出)
+    if 'model_output' in result['data']:
+        model_output = result['data']['model_output']['content']
+        print(f"✅ Model Output 可用")
+    
+    # 提取的图片
+    if 'images' in result['data']:
+        images_info = result['data']['images']
+        print(f"✅ 提取了 {images_info['count']} 张图片")
+```
+
+### 示例 3: 图片上传到 MinIO (可选功能)
 
 ```python
 import requests
@@ -188,7 +259,7 @@ if result['status'] == 'completed' and result.get('data'):
         f.write(content)
 ```
 
-### 示例 3: 批量处理
+### 示例 4: 批量处理
 
 ```python
 import requests
@@ -211,7 +282,7 @@ with concurrent.futures.ThreadPoolExecutor() as executor:
     print(f"✅ 已提交 {len(task_ids)} 个任务")
 ```
 
-### 示例 4: 使用内置客户端
+### 示例 5: 使用内置客户端
 
 ```bash
 # 运行完整示例
@@ -349,14 +420,67 @@ GET /api/v1/queue/stats
 返回: 各状态任务数量统计
 ```
 
-### 4. 取消任务
+### 4. 获取结构化数据
+```http
+GET /api/v1/tasks/{task_id}/data?include_fields=md,content_list,middle_json,model_output,images
+
+参数:
+  include_fields: 需要返回的字段，逗号分隔（默认返回所有）
+    - md: Markdown 内容
+    - content_list: 结构化内容列表（包含 layout 信息）
+    - middle_json: 中间处理结果（包含坐标等详细信息）
+    - model_output: 模型原始输出
+    - images: 提取的图片列表
+    - layout_pdf: Layout 可视化 PDF
+    - span_pdf: Span 可视化 PDF
+    - origin_pdf: 原始 PDF
+  upload_images: 是否上传图片到 MinIO
+  include_metadata: 是否包含文件元数据（默认: true）
+
+返回:
+  {
+    "success": true,
+    "task_id": "xxx",
+    "status": "completed",
+    "data": {
+      "markdown": {
+        "content": "...",
+        "file_name": "demo1.md",
+        "metadata": {...}
+      },
+      "content_list": {
+        "content": [...],  // 结构化内容列表
+        "file_name": "demo1_content_list.json"
+      },
+      "middle_json": {
+        "content": {...},  // 包含坐标信息
+        "file_name": "demo1_middle.json"
+      },
+      "model_output": {
+        "content": {...},
+        "file_name": "demo1_model.json"
+      },
+      "images": {
+        "count": 5,
+        "list": [...]
+      }
+    }
+  }
+
+说明:
+  - content_list 包含文档的结构化布局信息
+  - middle_json 包含每个元素的详细坐标、类型等
+  - 这些数据对于需要精确位置信息的应用场景非常有用
+```
+
+### 5. 取消任务
 ```http
 DELETE /api/v1/tasks/{task_id}
 
 只能取消 pending 状态的任务
 ```
 
-### 5. 管理接口
+### 6. 管理接口
 
 **重置超时任务**
 ```http
@@ -370,6 +494,221 @@ POST /api/v1/admin/reset-stale?timeout_minutes=60
 POST /api/v1/admin/cleanup?days=7
 
 仅用于手动触发清理(自动清理会每24小时执行一次)
+```
+
+## 🐳 Docker 部署指南
+
+### 前置要求
+
+1. **Docker** (20.10+)
+2. **Docker Compose** (2.0+)
+3. **NVIDIA Container Toolkit** (如果使用 GPU)
+4. **模型文件** (通过 `download_models.py` 下载)
+
+### 安装 NVIDIA Container Toolkit
+
+```bash
+# Ubuntu/Debian
+distribution=$(. /etc/os-release;echo $ID$VERSION_ID)
+curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | sudo apt-key add -
+curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list | sudo tee /etc/apt/sources.list.d/nvidia-docker.list
+
+sudo apt-get update
+sudo apt-get install -y nvidia-container-toolkit
+sudo systemctl restart docker
+
+# 验证安装
+docker run --rm --gpus all nvidia/cuda:12.1.1-base-ubuntu22.04 nvidia-smi
+```
+
+### 部署步骤
+
+#### 1. 下载模型文件
+
+```bash
+python3 download_models.py
+# 模型会下载到当前目录的 PDF-Extract-Kit-1.0 文件夹
+```
+
+#### 2. 配置 docker-compose.yml
+
+编辑 `docker-compose.yml`，修改模型路径：
+
+```yaml
+volumes:
+  # 修改为你的实际模型路径
+  - /your/actual/path/PDF-Extract-Kit-1.0:/app/models/PDF-Extract-Kit-1.0:ro
+```
+
+#### 3. 配置环境变量（可选）
+
+编辑 `mineru.env` 添加 MinIO 配置：
+
+```bash
+# MinIO 配置（如果需要图片上传功能）
+MINIO_ENDPOINT=your-endpoint.com
+MINIO_ACCESS_KEY=your-access-key
+MINIO_SECRET_KEY=your-secret-key
+MINIO_BUCKET=your-bucket
+```
+
+#### 4. 启动服务
+
+```bash
+# 构建并启动
+docker-compose up -d
+
+# 查看日志
+docker-compose logs -f mineru-tianshu
+
+# 查看容器状态
+docker-compose ps
+```
+
+#### 5. 验证服务
+
+```bash
+# 检查健康状态
+curl http://localhost:18000/api/v1/health
+
+# 访问 API 文档
+# 浏览器打开: http://localhost:18000/docs
+
+# 提交测试任务
+python3 client_example.py single
+```
+
+### Docker 常用操作
+
+```bash
+# 重启服务
+docker-compose restart
+
+# 停止服务
+docker-compose stop
+
+# 停止并删除容器
+docker-compose down
+
+# 查看实时日志
+docker-compose logs -f
+
+# 进入容器
+docker-compose exec mineru-tianshu bash
+
+# 查看 GPU 状态
+docker-compose exec mineru-tianshu nvidia-smi
+
+# 查看输出文件
+ls -la ./output/
+
+# 查看数据库
+ls -la ./data/mineru_tianshu.db
+```
+
+### Docker 配置说明
+
+#### 端口映射
+
+- `18000:8000` - API Server（宿主机:容器）
+- `19000:9000` - LitServe Worker
+
+#### 数据卷挂载
+
+```yaml
+volumes:
+  # 配置文件（只读）
+  - ./mineru.json:/app/mineru.json:ro
+  
+  # 模型文件（只读）
+  - /path/to/PDF-Extract-Kit-1.0:/app/models/PDF-Extract-Kit-1.0:ro
+  
+  # 输出目录（读写）
+  - ./output:/tmp/mineru_tianshu_output
+  
+  # 数据库目录（读写）
+  - ./data:/app/data
+```
+
+#### GPU 配置
+
+```yaml
+# 使用所有 GPU
+deploy:
+  resources:
+    reservations:
+      devices:
+        - driver: nvidia
+          count: all
+          capabilities: [gpu]
+
+# 使用特定 GPU
+deploy:
+  resources:
+    reservations:
+      devices:
+        - driver: nvidia
+          device_ids: ['0', '1']  # 只使用 GPU 0 和 1
+          capabilities: [gpu]
+```
+
+### 输出文件结构
+
+```
+output/
+└── {task_id}/
+    └── {filename}/
+        └── auto/
+            ├── {filename}.md                    # Markdown 内容
+            ├── {filename}_content_list.json    # 结构化内容列表 ✅
+            ├── {filename}_middle.json          # 中间结果（含坐标）✅
+            ├── {filename}_model.json           # 模型输出 ✅
+            ├── layout.pdf                      # Layout 可视化
+            ├── span.pdf                        # Span 可视化
+            └── images/                         # 提取的图片
+                ├── 1_0.jpg
+                └── ...
+```
+
+### Docker 故障排查
+
+#### 问题1: GPU 不可用
+
+```bash
+# 检查 GPU
+docker run --rm --gpus all nvidia/cuda:12.1.1-base-ubuntu22.04 nvidia-smi
+
+# 检查容器内 GPU
+docker-compose exec mineru-tianshu nvidia-smi
+```
+
+#### 问题2: 模型加载失败
+
+```bash
+# 检查模型路径挂载
+docker-compose exec mineru-tianshu ls -la /app/models/PDF-Extract-Kit-1.0
+
+# 检查配置文件
+docker-compose exec mineru-tianshu cat /app/mineru.json
+```
+
+#### 问题3: 端口被占用
+
+```bash
+# 修改 docker-compose.yml 中的端口映射
+ports:
+  - "18000:8000"  # 改为其他端口如 18080:8000
+```
+
+#### 问题4: 容器启动失败
+
+```bash
+# 查看详细日志
+docker-compose logs mineru-tianshu
+
+# 重新构建
+docker-compose build --no-cache
+docker-compose up -d
 ```
 
 ## 🔧 故障排查
@@ -562,4 +901,3 @@ minio>=7.2.0             # MinIO 对象存储
 **天枢 (Tianshu)** - 企业级多 GPU 文档解析服务 ⚡️
 
 *北斗第一星，寓意核心调度能力*
-
