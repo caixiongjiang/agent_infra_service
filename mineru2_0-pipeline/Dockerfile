@@ -78,5 +78,5 @@ RUN mkdir -p /app/data \
 # 9000: LitServe Worker
 EXPOSE 8000 9000
 
-# 设置启动命令
-CMD ["python3", "start_all.py"]
+# 设置启动命令（使用 shell 形式以支持环境变量）
+CMD python3 start_all.py --cleanup-old-files-days ${CLEANUP_OLD_FILES_DAYS:-7}

@@ -24,7 +24,8 @@ class TianshuLauncher:
         worker_port=9000,
         workers_per_device=1,
         devices='auto',
-        accelerator='auto'
+        accelerator='auto',
+        cleanup_old_files_days=7
     ):
         self.output_dir = output_dir
         self.api_port = api_port
@@ -32,6 +33,7 @@ class TianshuLauncher:
         self.workers_per_device = workers_per_device
         self.devices = devices
         self.accelerator = accelerator
+        self.cleanup_old_files_days = cleanup_old_files_days
         self.processes = []
     
     def start_services(self):
@@ -95,7 +97,8 @@ class TianshuLauncher:
             scheduler_cmd = [
                 sys.executable, 'task_scheduler.py',
                 '--litserve-url', f'http://localhost:{self.worker_port}/predict',
-                '--wait-for-workers'
+                '--wait-for-workers',
+                '--cleanup-old-files-days', str(self.cleanup_old_files_days)
             ]
             
             scheduler_proc = subprocess.Popen(
@@ -218,6 +221,8 @@ def main():
                        help='每个GPU的worker数量 (默认: 1)')
     parser.add_argument('--devices', type=str, default='auto',
                        help='使用的GPU设备，逗号分隔 (默认: auto，使用所有GPU)')
+    parser.add_argument('--cleanup-old-files-days', type=int, default=7,
+                       help='清理N天前的结果文件 (默认: 7天, 0=禁用)')
     
     args = parser.parse_args()
     
@@ -237,7 +242,8 @@ def main():
         worker_port=args.worker_port,
         workers_per_device=args.workers_per_device,
         devices=devices,
-        accelerator=args.accelerator
+        accelerator=args.accelerator,
+        cleanup_old_files_days=args.cleanup_old_files_days
     )
     
     # 设置信号处理
@@ -253,4 +259,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

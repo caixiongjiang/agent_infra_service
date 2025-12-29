@@ -24,6 +24,9 @@ services:
       - API_PORT=8000
       - OUTPUT_DIR=/app/output
       - TZ=Asia/Shanghai
+      # 文件清理配置（可选，会覆盖 mineru.env 中的配置）
+      - CLEANUP_OLD_FILES_DAYS=7  # 自动清理 N 天前的结果文件 (0=禁用)
+      
       # MinIO 配置（如果使用）
       # - MINIO_ENDPOINT=your-endpoint.com
       # - MINIO_ACCESS_KEY=your-access-key
@@ -42,7 +45,7 @@ services:
       
       # 模型文件夹挂载（重要：需要提前下载模型）
       # 请根据实际路径修改，这里假设模型在当前目录的 PDF-Extract-Kit-1.0 文件夹
-      - /home/caixj/projects-code/mineru2_5-pipeline/PDF-Extract-Kit-1.0:/app/models/PDF-Extract-Kit-1.0:ro
+      - /home/caixj/projects-code/mineru2_0-pipeline/PDF-Extract-Kit-1.0:/app/models/PDF-Extract-Kit-1.0:ro
       
       # 输出目录持久化（对应代码中的 /tmp/mineru_tianshu_output）
       - ./output:/tmp/mineru_tianshu_output
