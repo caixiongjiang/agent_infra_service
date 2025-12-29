@@ -165,22 +165,26 @@ def get_file_metadata(file_path: Path):
     }
 
 
-def get_images_info(image_dir: Path, upload_to_minio: bool = False):
+def get_images_info(image_dir: Path, upload_to_minio: bool = False, include_base64: bool = False):
     """
     获取图片目录信息
 
     Args:
         image_dir: 图片目录路径
         upload_to_minio: 是否上传到 MinIO
+        include_base64: 是否包含 base64 编码（仅在不上传 MinIO 时有效）
 
     Returns:
         图片信息字典
     """
+    import base64
+    
     if not image_dir.exists() or not image_dir.is_dir():
         return {
             'count': 0,
             'list': [],
-            'uploaded_to_minio': False
+            'uploaded_to_minio': False,
+            'include_base64': False
         }
 
     # 支持的图片格式
@@ -218,13 +222,23 @@ def get_images_info(image_dir: Path, upload_to_minio: bool = False):
             except Exception as e:
                 logger.error(f"Failed to upload image {img_file.name} to MinIO: {e}")
                 img_info['url'] = None
+        
+        # 如果需要 base64 且没有上传到 MinIO（避免冗余数据）
+        elif include_base64:
+            try:
+                with open(img_file, 'rb') as f:
+                    img_info['base64'] = base64.b64encode(f.read()).decode('utf-8')
+            except Exception as e:
+                logger.error(f"Failed to read image {img_file.name} as base64: {e}")
+                img_info['base64'] = None
 
         images_list.append(img_info)
 
     return {
         'count': len(images_list),
         'list': images_list,
-        'uploaded_to_minio': upload_to_minio
+        'uploaded_to_minio': upload_to_minio,
+        'include_base64': include_base64 and not upload_to_minio
     }
 
 
@@ -305,6 +319,7 @@ async def get_task_data(
         description="需要返回的字段，逗号分隔：md,content_list,middle_json,model_output,images,layout_pdf,span_pdf,origin_pdf"
     ),
     upload_images: bool = Query(False, description="是否上传图片到MinIO并返回URL"),
+    include_image_base64: bool = Query(False, description="是否返回图片的base64编码（仅在不上传MinIO时有效）"),
     include_metadata: bool = Query(True, description="是否包含文件元数据")
 ):
     """
@@ -315,10 +330,15 @@ async def get_task_data(
     - Content List JSON（结构化内容列表）
     - Middle JSON（中间处理结果）
     - Model Output JSON（模型原始输出）
-    - 图片列表
+    - 图片列表（可选返回 base64 或上传到 MinIO）
     - 其他辅助文件（layout PDF、span PDF、origin PDF）
 
     通过 include_fields 参数按需选择需要返回的字段
+    
+    注意：
+    - 如果 upload_images=True，图片会上传到 MinIO 并返回 URL，不会包含 base64
+    - 如果 upload_images=False 且 include_image_base64=True，图片会包含 base64 编码
+    - 避免同时上传 MinIO 和返回 base64，以减少响应体积
     """
     # 获取任务信息
     task = db.get_task(task_id)
@@ -454,7 +474,7 @@ async def get_task_data(
                 image_dir = image_dirs[0]
                 logger.info(f"🖼️  Getting images info from: {image_dir}")
 
-                images_info = get_images_info(image_dir, upload_images)
+                images_info = get_images_info(image_dir, upload_images, include_image_base64)
                 response['data']['images'] = images_info
 
         # 6. 处理 Layout PDF
