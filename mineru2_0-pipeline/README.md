@@ -111,10 +111,24 @@ python client_example.py
 
 **方式C: cURL 命令**
 ```bash
-# 提交任务
+# 提交任务（处理全部页面）
 curl -X POST http://localhost:8000/api/v1/tasks/submit \
   -F "file=@document.pdf" \
   -F "lang=ch"
+
+# 提交任务（只处理前10页）
+curl -X POST http://localhost:8000/api/v1/tasks/submit \
+  -F "file=@document.pdf" \
+  -F "lang=ch" \
+  -F "start_page_id=0" \
+  -F "end_page_id=9"
+
+# 提交任务（只处理第5-10页）
+curl -X POST http://localhost:8000/api/v1/tasks/submit \
+  -F "file=@document.pdf" \
+  -F "lang=ch" \
+  -F "start_page_id=5" \
+  -F "end_page_id=10"
 
 # 查询状态（任务完成后自动返回解析内容）
 curl http://localhost:8000/api/v1/tasks/{task_id}
@@ -259,7 +273,55 @@ if result['status'] == 'completed' and result.get('data'):
         f.write(content)
 ```
 
-### 示例 4: 批量处理
+### 示例 4: 使用分页功能（处理指定页码范围）
+
+```python
+import requests
+
+# 示例1: 只处理前10页
+with open('document.pdf', 'rb') as f:
+    response = requests.post(
+        'http://localhost:8000/api/v1/tasks/submit',
+        files={'file': f},
+        data={
+            'lang': 'ch',
+            'start_page_id': 0,      # 从第0页开始
+            'end_page_id': 9,        # 到第9页结束（共10页）
+        }
+    )
+    task_id = response.json()['task_id']
+    print(f"✅ 已提交任务: {task_id}，处理页码: 0-9")
+
+# 示例2: 只处理第5-10页
+with open('document.pdf', 'rb') as f:
+    response = requests.post(
+        'http://localhost:8000/api/v1/tasks/submit',
+        files={'file': f},
+        data={
+            'lang': 'ch',
+            'start_page_id': 5,      # 从第5页开始
+            'end_page_id': 10,       # 到第10页结束
+        }
+    )
+    task_id = response.json()['task_id']
+    print(f"✅ 已提交任务: {task_id}，处理页码: 5-10")
+
+# 示例3: 从第20页到最后一页
+with open('document.pdf', 'rb') as f:
+    response = requests.post(
+        'http://localhost:8000/api/v1/tasks/submit',
+        files={'file': f},
+        data={
+            'lang': 'ch',
+            'start_page_id': 20,     # 从第20页开始
+            # end_page_id 不传，表示处理到最后一页
+        }
+    )
+    task_id = response.json()['task_id']
+    print(f"✅ 已提交任务: {task_id}，处理页码: 20-end")
+```
+
+### 示例 5: 批量处理
 
 ```python
 import requests
@@ -389,7 +451,19 @@ POST /api/v1/tasks/submit
   file: 文件 (必需)
   backend: pipeline | vlm-transformers | vlm-vllm-engine (默认: pipeline)
   lang: ch | en | korean | japan | ... (默认: ch)
+  method: auto | txt | ocr (默认: auto)
+  formula_enable: true | false (默认: true)
+  table_enable: true | false (默认: true)
   priority: 0-100 (数字越大越优先，默认: 0)
+  start_page_id: 起始页码，从0开始 (默认: 0)
+  end_page_id: 结束页码，None表示到最后一页 (默认: None)
+
+分页参数说明:
+  - start_page_id 和 end_page_id 用于指定处理的页码范围
+  - 页码从 0 开始计数
+  - end_page_id 包含在处理范围内
+  - 示例: start_page_id=0, end_page_id=9 表示处理前10页（第0-9页）
+  - 不传 end_page_id 或传 None 表示处理到最后一页
 ```
 
 ### 2. 查询任务

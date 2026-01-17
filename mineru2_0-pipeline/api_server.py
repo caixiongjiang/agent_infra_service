@@ -262,11 +262,18 @@ async def submit_task(
     formula_enable: bool = Form(True, description="是否启用公式识别"),
     table_enable: bool = Form(True, description="是否启用表格识别"),
     priority: int = Form(0, description="优先级，数字越大越优先"),
+    start_page_id: int = Form(0, description="起始页码（从0开始，默认0）"),
+    end_page_id: int | None = Form(None, description="结束页码（None表示到最后一页，默认None）"),
 ):
     """
     提交文档解析任务
     
     立即返回 task_id，任务在后台异步处理
+    
+    分页参数说明:
+    - start_page_id: 起始页码，从0开始（包含）
+    - end_page_id: 结束页码（包含），None 表示处理到最后一页
+    - 示例: start_page_id=0, end_page_id=9 表示处理前10页（第0-9页）
     """
     try:
         # 保存上传的文件到临时目录
@@ -291,6 +298,8 @@ async def submit_task(
                 'method': method,
                 'formula_enable': formula_enable,
                 'table_enable': table_enable,
+                'start_page_id': start_page_id,
+                'end_page_id': end_page_id,
             },
             priority=priority
         )

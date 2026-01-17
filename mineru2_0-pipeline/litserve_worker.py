@@ -324,6 +324,8 @@ class MinerUWorkerAPI(ls.LitAPI):
                 parse_method=options.get('method', 'auto'),
                 formula_enable=options.get('formula_enable', True),
                 table_enable=options.get('table_enable', True),
+                start_page_id=options.get('start_page_id', 0),
+                end_page_id=options.get('end_page_id', None),
             )
         finally:
             # 使用 MinerU 自带的内存清理函数
@@ -542,5 +544,3 @@ if __name__ == '__main__':
         poll_interval=args.poll_interval,
         enable_worker_loop=not args.disable_worker_loop
     )
-
-
