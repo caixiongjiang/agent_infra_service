@@ -19,15 +19,46 @@ services:
     env_file:
       - mineru.env
     
-    # 额外的环境变量（可选）
+    # 额外的环境变量（可选，会覆盖 mineru.env 中的配置）
     environment:
-      - API_PORT=8000
-      - OUTPUT_DIR=/app/output
       - TZ=Asia/Shanghai
-      # 文件清理配置（可选，会覆盖 mineru.env 中的配置）
-      - CLEANUP_OLD_FILES_DAYS=7  # 自动清理 N 天前的结果文件 (0=禁用)
+      - OUTPUT_DIR=/app/output
       
-      # MinIO 配置（如果使用）
+      # ============================================
+      # Worker 配置
+      # ============================================
+      # 每个 GPU 的 worker 数量（默认: 1）
+      # 建议根据显存调整：8GB=1, 12GB=1-2, 24GB=2-3
+      - WORKERS_PER_DEVICE=1
+      
+      # 使用的 GPU 设备（默认: auto）
+      # auto: 使用所有 GPU
+      # 0: 只使用 GPU 0
+      # 0,1: 使用 GPU 0 和 1
+      - DEVICES=auto
+      
+      # 加速器类型（默认: auto）
+      # auto: 自动检测
+      # cuda: NVIDIA GPU
+      # cpu: CPU 模式
+      # mps: Apple Silicon
+      - ACCELERATOR=auto
+      
+      # ============================================
+      # 服务端口配置
+      # ============================================
+      - API_PORT=8000
+      - WORKER_PORT=9000
+      
+      # ============================================
+      # 文件清理配置
+      # ============================================
+      # 自动清理 N 天前的结果文件 (0=禁用)
+      - CLEANUP_OLD_FILES_DAYS=7
+      
+      # ============================================
+      # MinIO 配置（如果需要图片上传功能）
+      # ============================================
       # - MINIO_ENDPOINT=your-endpoint.com
       # - MINIO_ACCESS_KEY=your-access-key
       # - MINIO_SECRET_KEY=your-secret-key

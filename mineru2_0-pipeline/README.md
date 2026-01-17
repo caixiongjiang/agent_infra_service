@@ -540,17 +540,48 @@ volumes:
   - /your/actual/path/PDF-Extract-Kit-1.0:/app/models/PDF-Extract-Kit-1.0:ro
 ```
 
-#### 3. 配置环境变量（可选）
+#### 3. 配置环境变量（重要）
 
-编辑 `mineru.env` 添加 MinIO 配置：
+编辑 `mineru.env` 配置服务参数：
 
 ```bash
-# MinIO 配置（如果需要图片上传功能）
-MINIO_ENDPOINT=your-endpoint.com
-MINIO_ACCESS_KEY=your-access-key
-MINIO_SECRET_KEY=your-secret-key
-MINIO_BUCKET=your-bucket
+# ============================================
+# Worker 配置
+# ============================================
+# 每个 GPU 的 worker 数量（默认: 1）
+WORKERS_PER_DEVICE=1
+
+# 使用的 GPU 设备（默认: auto）
+DEVICES=auto
+
+# 加速器类型（默认: auto）
+ACCELERATOR=auto
+
+# ============================================
+# 服务端口配置
+# ============================================
+API_PORT=8000
+WORKER_PORT=9000
+
+# ============================================
+# 文件清理配置
+# ============================================
+CLEANUP_OLD_FILES_DAYS=7
+
+# ============================================
+# MinIO 配置（可选）
+# ============================================
+# MINIO_ENDPOINT=your-endpoint.com
+# MINIO_ACCESS_KEY=your-access-key
+# MINIO_SECRET_KEY=your-secret-key
+# MINIO_BUCKET=your-bucket
 ```
+
+**配置说明**：
+- `WORKERS_PER_DEVICE`: 建议根据显存调整 (8GB=1, 12GB=1-2, 24GB=2-3)
+- `DEVICES`: 指定使用的 GPU (auto/0/0,1 等)
+- `ACCELERATOR`: 加速器类型 (auto/cuda/cpu/mps)
+- `CLEANUP_OLD_FILES_DAYS`: 自动清理旧文件的天数 (0=禁用)
 
 #### 4. 启动服务
 
@@ -607,6 +638,30 @@ ls -la ./data/mineru_tianshu.db
 ```
 
 ### Docker 配置说明
+
+#### 环境变量配置
+
+所有配置都可以通过环境变量设置（在 `docker-compose.yml` 或 `mineru.env` 中）：
+
+| 环境变量 | 默认值 | 说明 |
+|---------|--------|------|
+| `WORKERS_PER_DEVICE` | 1 | 每个 GPU 的 worker 数量 |
+| `DEVICES` | auto | 使用的 GPU 设备 (auto/0/0,1) |
+| `ACCELERATOR` | auto | 加速器类型 (auto/cuda/cpu/mps) |
+| `API_PORT` | 8000 | API Server 端口 |
+| `WORKER_PORT` | 9000 | Worker Server 端口 |
+| `CLEANUP_OLD_FILES_DAYS` | 7 | 清理旧文件天数 (0=禁用) |
+
+**示例配置**：
+
+```yaml
+# docker-compose.yml
+environment:
+  - WORKERS_PER_DEVICE=2    # 24GB 显卡可以设置 2-3 个 worker
+  - DEVICES=0,1             # 只使用 GPU 0 和 1
+  - ACCELERATOR=cuda        # 使用 NVIDIA GPU
+  - CLEANUP_OLD_FILES_DAYS=3  # 3天后自动清理
+```
 
 #### 端口映射
 

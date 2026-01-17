@@ -79,4 +79,11 @@ RUN mkdir -p /app/data \
 EXPOSE 8000 9000
 
 # 设置启动命令（使用 shell 形式以支持环境变量）
-CMD python3 start_all.py --cleanup-old-files-days ${CLEANUP_OLD_FILES_DAYS:-7}
+# 所有参数都从环境变量读取，提供默认值
+CMD python3 start_all.py \
+    --api-port ${API_PORT:-8000} \
+    --worker-port ${WORKER_PORT:-9000} \
+    --workers-per-device ${WORKERS_PER_DEVICE:-1} \
+    --devices ${DEVICES:-auto} \
+    --accelerator ${ACCELERATOR:-auto} \
+    --cleanup-old-files-days ${CLEANUP_OLD_FILES_DAYS:-7}
