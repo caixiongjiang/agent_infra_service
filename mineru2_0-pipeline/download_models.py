@@ -14,4 +14,4 @@
 
 #模型下载
 from modelscope import snapshot_download
-model_dir = snapshot_download('OpenDataLab/PDF-Extract-Kit-1.0', local_dir='./mineru')
+model_dir = snapshot_download('OpenDataLab/PDF-Extract-Kit-1.0', local_dir='./PDF-Extract-Kit-1.0')
