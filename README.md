@@ -36,10 +36,7 @@
 
 | 服务 | 说明 | 目录 | 端口 |
 |------|------|------|------|
-| **MinerU Pipeline** | MinerU 文档解析服务 (v1) | [`mineru-pipeline/`](./mineru-pipeline/) | 自定义 |
 | **MinerU 天枢** | 企业级多 GPU 文档解析服务 (v2.0) | [`mineru2_0-pipeline/`](./mineru2_0-pipeline/) | 8000, 9000 |
-
-> 💡 **推荐**: 新项目建议使用 [MinerU 天枢](./mineru2_0-pipeline/)，它提供了更强大的企业级功能、更好的性能和完整的 RESTful API。
 
 ## 🚀 快速开始
 
@@ -73,7 +70,6 @@ cd <service-directory>
 以下服务支持 GPU 加速（可选，非必需）：
 - Embedding (vLLM) - 需要 GPU
 - Reranker (vLLM) - 需要 GPU
-- MinerU Pipeline - 需要 GPU
 - MinerU 天枢 - 需要 GPU
 - Milvus - 可选 GPU 加速（提供 CPU/GPU 两种部署方式）
 
@@ -137,7 +133,7 @@ cd <service-directory>
 
 ### 文档处理服务
 
-#### MinerU 天枢 (推荐)
+#### MinerU 天枢
 - **用途**: 企业级文档解析服务
 - **核心特性**:
   - ✅ 多 GPU 负载均衡
@@ -147,10 +143,6 @@ cd <service-directory>
   - ✅ Worker 主动拉取模式，0.5秒响应速度
   - ✅ 智能双解析器（MinerU + MarkItDown）
 - **详细文档**: [点击查看](./mineru2_0-pipeline/README.md)
-
-#### MinerU Pipeline (Legacy)
-- **用途**: 基础文档解析服务
-- **状态**: 维护模式，建议迁移到天枢版本
 
 ## 🛠️ 服务组合建议
 
