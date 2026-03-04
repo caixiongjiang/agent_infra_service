@@ -1,0 +1,6 @@
+FlagEmbedding
+transformers>=4.44.0,<4.47.0
+fastapi
+uvicorn[standard]
+pydantic
+torch

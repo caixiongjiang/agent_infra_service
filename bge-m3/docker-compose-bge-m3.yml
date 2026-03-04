@@ -1,0 +1,39 @@
+services:
+  bge-m3:
+    container_name: bge-m3-server
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              capabilities: [gpu]
+              count: all
+    environment:
+      - TZ=Asia/Shanghai
+      - CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0}
+      - MODEL_PATH=${MODEL_INTERNAL_PATH:-/models/BAAI/bge-m3}
+      - PORT=18085
+      - BATCH_SIZE=${BATCH_SIZE:-32}
+      - MAX_LENGTH=${MAX_LENGTH:-8192}
+      - DEVICE=${DEVICE:-cuda}
+    volumes:
+      - ${MODEL_HOST_PATH:-./models/BAAI/bge-m3}:${MODEL_INTERNAL_PATH:-/models/BAAI/bge-m3}
+    ports:
+      - "18085:18085"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:18085/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    networks:
+      - bge-m3-network
+
+networks:
+  bge-m3-network:
+    driver: bridge
+    name: bge-m3-network
