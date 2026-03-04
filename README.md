@@ -29,7 +29,8 @@
 
 | 服务 | 说明 | 目录 | 端口 |
 |------|------|------|------|
-| **Embedding** | 向量嵌入服务 (基于 vLLM) | [`embedding/`](./embedding/) | 自定义 |
+| **Qwen3 Embedding** | 向量嵌入服务 (基于 vLLM) | [`qwen3-embedding/`](./qwen3-embedding/) | 18084 |
+| **BGE-M3** | 全功能向量模型 (Dense + Sparse) | [`bge-m3/`](./bge-m3/) | 18085 |
 | **Reranker** | 重排序服务 (基于 vLLM) | [`reranker/`](./reranker/) | 自定义 |
 
 ### 📄 文档处理服务
@@ -68,7 +69,8 @@ cd <service-directory>
 
 ### GPU 服务要求（可选）
 以下服务支持 GPU 加速（可选，非必需）：
-- Embedding (vLLM) - 需要 GPU
+- Qwen3 Embedding (vLLM) - 需要 GPU
+- BGE-M3 (FastAPI + FlagEmbedding) - 需要 GPU
 - Reranker (vLLM) - 需要 GPU
 - MinerU 天枢 - 需要 GPU
 - Milvus - 可选 GPU 加速（提供 CPU/GPU 两种部署方式）
@@ -121,10 +123,19 @@ cd <service-directory>
 
 ### AI 能力服务
 
-#### Embedding
-- **用途**: 文本向量化服务
-- **技术栈**: vLLM 推理引擎
-- **典型场景**: RAG 检索、语义搜索、相似度计算
+#### Qwen3 Embedding
+- **用途**: 高性能文本向量化服务
+- **技术栈**: vLLM 推理引擎 (Qwen3-Embedding-0.6B)
+- **典型场景**: 大规模 RAG 检索、语义搜索
+
+#### BGE-M3
+- **用途**: 全功能向量化服务 (支持稠密 & 稀疏向量)
+- **技术栈**: FastAPI + FlagEmbedding 原生库
+- **核心特性**: 
+  - ✅ 同时输出稠密向量 (Dense) 和稀疏向量 (Sparse/Lexical)
+  - ✅ 支持混合检索 (Hybrid Search)
+  - ✅ 兼容 OpenAI 嵌入接口格式
+- **典型场景**: 高精度混合检索、关键词+语义多路召回
 
 #### Reranker
 - **用途**: 检索结果重排序
@@ -148,17 +159,17 @@ cd <service-directory>
 
 ### 最小 RAG 系统
 ```
-Milvus + Embedding + MinerU 天枢
+Milvus + BGE-M3 (或 Qwen3) + MinerU 天枢
 ```
 
 ### 完整 Agent 系统
 ```
-Milvus + Redis + Kafka + Embedding + Reranker + MinerU 天枢
+Milvus + Redis + Kafka + BGE-M3 + Reranker + MinerU 天枢
 ```
 
 ### 知识图谱系统
 ```
-Neo4j + MongoDB + Embedding + MinerU 天枢
+Neo4j + MongoDB + Qwen3 Embedding + MinerU 天枢
 ```
 
 ## 📝 注意事项
