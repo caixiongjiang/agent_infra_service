@@ -86,4 +86,6 @@ CMD python3 start_all.py \
     --workers-per-device ${WORKERS_PER_DEVICE:-1} \
     --devices ${DEVICES:-auto} \
     --accelerator ${ACCELERATOR:-auto} \
-    --cleanup-old-files-days ${CLEANUP_OLD_FILES_DAYS:-7}
+    --cleanup-old-files-days ${CLEANUP_OLD_FILES_DAYS:-7} \
+    --pipeline-size ${PIPELINE_SIZE:-3} \
+    --io-workers ${IO_WORKERS:-1}

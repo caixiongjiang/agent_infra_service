@@ -1,19 +1,21 @@
+# 镜像名由环境变量指定，便于 CI 推送后服务器拉取（需设置 DOCKER_REGISTRY、IMAGE_TAG）
+# 示例：在服务器 .env 或部署时设置 IMAGE_TAG=dev_<CI_COMMIT_SHORT_SHA>
 services:
   mineru-tianshu:
+    image: ${DOCKER_REGISTRY}/jetpave/mineru2_0-pipeline-mineru-tianshu:${IMAGE_TAG}
     build:
       context: .
       dockerfile: Dockerfile
-    
     container_name: mineru-tianshu
     
     # GPU 支持配置 (需要 docker 安装 nvidia-container-toolkit)
     deploy:
-      resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all  # 使用所有 GPU，也可以指定数量如 count: 1
-              capabilities: [gpu]
+       resources:
+         reservations:
+           devices:
+             - driver: nvidia
+               count: all
+               capabilities: [gpu]
     
     # 环境变量文件
     env_file:
@@ -28,8 +30,11 @@ services:
       # Worker 配置
       # ============================================
       # 每个 GPU 的 worker 数量（默认: 1）
-      # 建议根据显存调整：8GB=1, 12GB=1-2, 24GB=2-3
-      - WORKERS_PER_DEVICE=1
+      # 需综合考虑 CPU 物理核数和 GPU 显存:
+      #   CPU 约束: 总 Worker 数 × (MINERU_PDF_RENDER_THREADS + 2) ≤ 物理核数
+      #   显存约束: 根据实际观测调整，避免 OOM
+      # 参考: 64物理核+2×4090(48GB) → 建议 4~6
+      - WORKERS_PER_DEVICE=6
       
       # 使用的 GPU 设备（默认: auto）
       # auto: 使用所有 GPU
@@ -45,6 +50,31 @@ services:
       - ACCELERATOR=auto
       
       # ============================================
+      # Worker 性能调优
+      # ============================================
+      # PDF 渲染并发进程数（默认: 4）
+      # 每个 Worker 内部渲染 PDF 页面时的子进程数
+      # 总渲染进程 = WORKERS_PER_DEVICE × GPU数 × 此值，需控制在物理核数以内
+      # 建议: 2~3
+      - MINERU_PDF_RENDER_THREADS=2
+      
+      # 单个 Worker 可用的虚拟显存上限（GB）
+      # 不设置时自动读取 GPU 总显存；多 Worker 共享同一 GPU 时建议显式设置
+      # 设太大有 OOM 风险，设太小会导致模型频繁加载/卸载
+      # 参考: 48GB GPU / 5 workers ≈ 9.6GB，可设 8~10
+      - MINERU_VIRTUAL_VRAM_SIZE=8
+      
+      # Pipeline 队列大小（默认: 3）
+      # 每个 Worker 可同时缓冲的任务数，值越大 GPU 预取越多，但占用更多内存和显存
+      # CPU 瓶颈时建议 2~3
+      - PIPELINE_SIZE=3
+      
+      # I/O 线程池大小（默认: 2）
+      # 每个 Worker 的文件读写线程数
+      # CPU 紧张时建议降为 1
+      - IO_WORKERS=1
+      
+      # ============================================
       # 服务端口配置
       # ============================================
       - API_PORT=8000
@@ -54,7 +84,7 @@ services:
       # 文件清理配置
       # ============================================
       # 自动清理 N 天前的结果文件 (0=禁用)
-      - CLEANUP_OLD_FILES_DAYS=7
+      - CLEANUP_OLD_FILES_DAYS=1
       
       # ============================================
       # MinIO 配置（如果需要图片上传功能）

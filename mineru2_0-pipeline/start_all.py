@@ -25,7 +25,9 @@ class TianshuLauncher:
         workers_per_device=1,
         devices='auto',
         accelerator='auto',
-        cleanup_old_files_days=7
+        cleanup_old_files_days=7,
+        pipeline_size=3,
+        io_workers=1
     ):
         self.output_dir = output_dir
         self.api_port = api_port
@@ -34,6 +36,8 @@ class TianshuLauncher:
         self.devices = devices
         self.accelerator = accelerator
         self.cleanup_old_files_days = cleanup_old_files_days
+        self.pipeline_size = pipeline_size
+        self.io_workers = io_workers
         self.processes = []
     
     def start_services(self):
@@ -73,7 +77,9 @@ class TianshuLauncher:
                 '--accelerator', self.accelerator,
                 '--workers-per-device', str(self.workers_per_device),
                 '--port', str(self.worker_port),
-                '--devices', str(self.devices) if isinstance(self.devices, str) else ','.join(map(str, self.devices))
+                '--devices', str(self.devices) if isinstance(self.devices, str) else ','.join(map(str, self.devices)),
+                '--pipeline-size', str(self.pipeline_size),
+                '--io-workers', str(self.io_workers),
             ]
             
             worker_proc = subprocess.Popen(
@@ -223,6 +229,10 @@ def main():
                        help='使用的GPU设备，逗号分隔 (默认: auto，使用所有GPU)')
     parser.add_argument('--cleanup-old-files-days', type=int, default=7,
                        help='清理N天前的结果文件 (默认: 7天, 0=禁用)')
+    parser.add_argument('--pipeline-size', type=int, default=3,
+                       help='每个Worker的Pipeline队列大小 (默认: 3)')
+    parser.add_argument('--io-workers', type=int, default=1,
+                       help='每个Worker的I/O线程数 (默认: 1)')
     
     args = parser.parse_args()
     
@@ -243,7 +253,9 @@ def main():
         workers_per_device=args.workers_per_device,
         devices=devices,
         accelerator=args.accelerator,
-        cleanup_old_files_days=args.cleanup_old_files_days
+        cleanup_old_files_days=args.cleanup_old_files_days,
+        pipeline_size=args.pipeline_size,
+        io_workers=args.io_workers,
     )
     
     # 设置信号处理
