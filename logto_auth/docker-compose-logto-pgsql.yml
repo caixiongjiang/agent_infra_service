@@ -1,0 +1,50 @@
+services:
+  # PostgreSQL 数据库
+  postgres:
+    image: postgres:${LOGTO_POSTGRES_VERSION:-14-alpine}
+    container_name: logto_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${LOGTO_DB_USER}
+      POSTGRES_PASSWORD: ${LOGTO_DB_PASSWORD}
+      POSTGRES_DB: ${LOGTO_DB_NAME}
+      TZ: ${TZ:-Asia/Shanghai}
+    volumes:
+      - ${LOGTO_DATA_PATH:-.}/data/postgres:/var/lib/postgresql/data
+    networks:
+      - logto-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${LOGTO_DB_USER} -d ${LOGTO_DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Logto 认证服务
+  logto:
+    image: ${LOGTO_IMAGE:-svhd/logto:latest}
+    container_name: logto
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "${LOGTO_PORT:-3001}:3001"
+      - "${LOGTO_ADMIN_PORT:-3002}:3002"
+    environment:
+      DB_URL: postgresql://${LOGTO_DB_USER}:${LOGTO_DB_PASSWORD}@postgres:5432/${LOGTO_DB_NAME}
+      PORT: 3001
+      ADMIN_PORT: 3002
+      ENDPOINT: ${LOGTO_ENDPOINT}
+      ADMIN_ENDPOINT: ${LOGTO_ADMIN_ENDPOINT}
+      TRUST_PROXY_HEADER: ${LOGTO_TRUST_PROXY_HEADER:-1}
+      DATABASE_STATEMENT_TIMEOUT: ${LOGTO_DATABASE_STATEMENT_TIMEOUT:-DISABLE_TIMEOUT}
+      TZ: ${TZ:-Asia/Shanghai}
+    volumes:
+      - ./disable-pwned-check.cjs:/etc/logto/disable-pwned-check.cjs:ro
+    entrypoint: ["sh", "-c", "npm run cli db seed -- --swe && node /etc/logto/disable-pwned-check.cjs; npm start"]
+    networks:
+      - logto-network
+
+networks:
+  logto-network:
+    driver: bridge

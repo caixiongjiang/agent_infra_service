@@ -18,6 +18,7 @@
 | **Neo4j** | 图数据库 | [`neo4j/`](./neo4j/) | 7474, 7687 |
 | **Redis** | 内存缓存数据库 | [`redis/`](./redis/) | 6379 |
 | **Milvus** | 向量数据库 (支持 CPU/GPU) | [`milvus/`](./milvus/) | 19530, 3000 |
+| **Logto Auth** | 认证与身份管理服务 | [`logto_auth/`](./logto_auth/) | 3001, 3002 |
 
 ### 🔄 消息队列服务
 
@@ -114,6 +115,14 @@ cd <service-directory>
   - 支持多种索引类型（FLAT、IVF、HNSW 等）
   - 毫秒级检索响应
   - 支持标量过滤和混合查询
+
+#### Logto Auth
+- **用途**: 统一认证、用户身份管理、OAuth/OIDC 提供方
+- **典型场景**: Agent 平台登录、SSO、第三方应用授权
+- **特性**:
+  - 内置用户端接口与 Admin 控制台
+  - 默认集成 PostgreSQL 持久化存储
+  - 支持通过 `.env` 快速调整端口、域名和数据库配置
 
 ### 消息队列服务
 
