@@ -15,4 +15,4 @@
 #模型下载
 from modelscope import snapshot_download
 
-model_dir = snapshot_download('Qwen/Qwen3-Reranker-4B', local_dir="./models/Qwen/Qwen3-Reranker-4B")
+model_dir = snapshot_download('Qwen/Qwen3-Reranker-0.6B', local_dir="./models/Qwen/Qwen3-Reranker-0.6B")

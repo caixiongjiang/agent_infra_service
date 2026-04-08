@@ -14,15 +14,15 @@ services:
       - TZ=Asia/Shanghai
       - CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0}
     volumes:
-      - ${MODEL_HOST_PATH:-./models/Qwen/Qwen3-Reranker-4B}:${MODEL_INTERNAL_PATH:-/Qwen3-Reranker-4B}
+      - ${MODEL_HOST_PATH:-./models/Qwen/Qwen3-Reranker-0.6B}:${MODEL_INTERNAL_PATH:-/Qwen3-Reranker-0.6B}
     command: >
-      --model ${MODEL_INTERNAL_PATH:-/Qwen3-Reranker-4B}
+      --model ${MODEL_INTERNAL_PATH:-/Qwen3-Reranker-0.6B}
       --host 0.0.0.0
       --port 18083
-      --served-model-name ${MODEL_NAME:-qwen3-reranker}
+      --served-model-name ${MODEL_NAME:-qwen3-reranker-0.6b}
       --trust-remote-code
       --max-model-len ${MAX_MODEL_LEN:-8192}
-      --gpu-memory-utilization ${GPU_MEMORY_UTIL:-0.85}
+      --gpu-memory-utilization ${GPU_MEMORY_UTIL:-0.4}
       --dtype bfloat16
       --hf-overrides '{"architectures": ["Qwen3ForSequenceClassification"], "classifier_from_token": ["no", "yes"], "is_original_qwen3_reranker": true}'
     ports:
