@@ -17,9 +17,14 @@ import os
 import re
 import uuid
 import json
+import asyncio
+import aiohttp
 from minio import Minio
 
 from task_db import TaskDB
+
+# LitServe Worker 端口（与 start_all / litserve_worker 一致，供健康检查探测）
+WORKER_PORT = int(os.getenv('WORKER_PORT', '9000'))
 
 # 初始化 FastAPI 应用
 app = FastAPI(
@@ -739,30 +744,79 @@ async def reset_stale_tasks(timeout_minutes: int = Query(60, description="超时
     }
 
 
+async def _check_litserve_worker() -> tuple[bool, str | None, dict | None]:
+    """
+    探测本机 LitServe Worker 是否与 task_scheduler 使用同一契约（POST /predict, action=health）。
+    使用 127.0.0.1，避免个别环境下 localhost 解析到 IPv6 而服务仅监听 IPv4 的问题。
+    """
+    url = f'http://127.0.0.1:{WORKER_PORT}/predict'
+    try:
+        timeout = aiohttp.ClientTimeout(total=5)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.post(url, json={'action': 'health'}) as resp:
+                try:
+                    body = await resp.json(content_type=None)
+                except (aiohttp.ContentTypeError, json.JSONDecodeError):
+                    body = None
+                if resp.status != 200:
+                    return False, f'HTTP {resp.status}', body if isinstance(body, dict) else None
+                return True, None, body if isinstance(body, dict) else None
+    except asyncio.TimeoutError:
+        return False, 'worker health check timeout', None
+    except Exception as e:
+        return False, str(e), None
+
+
 @app.get("/api/v1/health")
 async def health_check():
     """
-    健康检查接口
+    健康检查接口：数据库 + LitServe Worker（WORKER_PORT，默认 9000）。
+    Worker 不可用时返回 503，便于 Docker/K8s 将实例标为不健康并重启。
     """
     try:
-        # 检查数据库连接
         stats = db.get_queue_stats()
-        
-        return {
-            'status': 'healthy',
-            'timestamp': datetime.now().isoformat(),
-            'database': 'connected',
-            'queue_stats': stats
-        }
     except Exception as e:
         logger.error(f"Health check failed: {e}")
         return JSONResponse(
             status_code=503,
             content={
                 'status': 'unhealthy',
+                'timestamp': datetime.now().isoformat(),
+                'database': 'error',
                 'error': str(e)
             }
         )
+
+    worker_ok, worker_err, worker_payload = await _check_litserve_worker()
+    if not worker_ok:
+        logger.warning(f"Health check: LitServe worker not ready: {worker_err}")
+        return JSONResponse(
+            status_code=503,
+            content={
+                'status': 'unhealthy',
+                'timestamp': datetime.now().isoformat(),
+                'database': 'connected',
+                'queue_stats': stats,
+                'worker': {
+                    'ok': False,
+                    'port': WORKER_PORT,
+                    'error': worker_err,
+                    'details': worker_payload,
+                },
+            }
+        )
+
+    return {
+        'status': 'healthy',
+        'timestamp': datetime.now().isoformat(),
+        'database': 'connected',
+        'queue_stats': stats,
+        'worker': {
+            'ok': True,
+            'port': WORKER_PORT,
+            'details': worker_payload,
+        },
+    }
 
 
 if __name__ == '__main__':
