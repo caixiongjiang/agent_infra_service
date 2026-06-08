@@ -1,0 +1,58 @@
+services:
+  litellm:
+    image: ${LITELLM_IMAGE:-ghcr.io/berriai/litellm:main-latest}
+    container_name: litellm
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${LITELLM_PORT:-4000}:4000"
+    environment:
+      DATABASE_URL: postgresql://${LITELLM_DB_USER}:${LITELLM_DB_PASSWORD}@db:5432/${LITELLM_DB_NAME}
+      STORE_MODEL_IN_DB: ${STORE_MODEL_IN_DB:-True}
+      TZ: ${TZ:-Asia/Shanghai}
+    env_file:
+      - litellm.env
+    volumes:
+      - ./config.yaml:/app/config.yaml:ro
+    command: ["--config", "/app/config.yaml", "--port", "4000"]
+    networks:
+      - litellm-network
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python3",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://localhost:4000/health/liveliness')",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  db:
+    image: postgres:${LITELLM_POSTGRES_VERSION:-16}
+    container_name: litellm_db
+    restart: always
+    environment:
+      POSTGRES_DB: ${LITELLM_DB_NAME}
+      POSTGRES_USER: ${LITELLM_DB_USER}
+      POSTGRES_PASSWORD: ${LITELLM_DB_PASSWORD}
+      TZ: ${TZ:-Asia/Shanghai}
+    ports:
+      - "${LITELLM_POSTGRES_HOST_PORT:-5432}:5432"
+    volumes:
+      - ${LITELLM_DATA_PATH:-.}/data/postgres:/var/lib/postgresql/data
+    networks:
+      - litellm-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d ${LITELLM_DB_NAME} -U ${LITELLM_DB_USER}"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  litellm-network:
+    driver: bridge

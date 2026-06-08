@@ -1,0 +1,13 @@
+# LiteLLM Proxy 全局配置
+#
+# 模型列表仍通过 UI / PostgreSQL（STORE_MODEL_IN_DB=True）管理；
+# 本文件仅声明 Proxy 级 litellm_settings，与应用侧 LLMClient 的 drop_params 互补。
+#
+# 文档: https://docs.litellm.ai/docs/proxy/configs
+
+litellm_settings:
+  # 丢弃 provider 不支持的 OpenAI 兼容参数（如 reasoning_effort / thinking 等），
+  # 避免 dashscope/qwen 等模型报 UnsupportedParamsError。
+  drop_params: true
+  # 工具调用 + thinking 冲突等场景下，允许 LiteLLM 微调入参。
+  modify_params: true
